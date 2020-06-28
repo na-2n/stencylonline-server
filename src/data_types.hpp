@@ -2,6 +2,10 @@
 
 #include <cstring>
 
+using player_id_t = unsigned char;
+using packet_id_t = unsigned char;
+using packet_length_t = unsigned char;
+
 struct vec2 {
     float x;
     float y;

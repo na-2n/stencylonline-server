@@ -1,7 +1,5 @@
 #include "game_client.hpp"
 
-#include <iostream>
-
 game_client::game_client(tcp::socket sock, game_lobby& lobby)
     : _sock{std::move(sock)},
       _lobby{lobby}
@@ -31,21 +29,21 @@ void game_client::do_read_header()
     auto self{shared_from_this()};
 
     asio::async_read(_sock,
-            asio::buffer(_packet.data(), game_packet::header_length),
-            [this, self](std::error_code ec, std::size_t)
-            {
-                if (ec == asio::error::connection_reset ||
-                        ec == asio::error::eof ||
-                        (_last_ping != time_point{} && _clock.now() - _last_ping > _dc_treshold)) {
-                    _lobby.leave(shared_from_this());
+        asio::buffer(_packet.data(), game_packet::header_client),
+        [this, self](std::error_code ec, std::size_t)
+        {
+            if (ec == asio::error::connection_reset ||
+                    ec == asio::error::eof ||
+                    (_last_ping != time_point{} && _clock.now() - _last_ping > _dc_treshold)) {
+                _lobby.leave(shared_from_this());
 
-                    return;
-                }
+                return;
+            }
 
-                if (!ec && _packet.decode_header()) {
-                    do_read_body();
-                }
-            });
+            if (!ec && _packet.decode_header()) {
+                do_read_body();
+            }
+        });
 }
 
 void game_client::do_read_body()
@@ -53,17 +51,15 @@ void game_client::do_read_body()
     auto self{shared_from_this()};
 
     asio::async_read(_sock,
-            asio::buffer(_packet.body(), _packet.body_length()),
-            [this, self](std::error_code ec, std::size_t)
-            {
-                if (!ec) {
-                    //std::cout << "incoming packet" << std::endl;
+        asio::buffer(_packet.body(), _packet.body_length()),
+        [this, self](std::error_code ec, std::size_t)
+        {
+            if (!ec) {
+                handle_packet(_packet);
 
-                    handle_packet(_packet);
-
-                    do_read_header();
-                }
-            });
+                do_read_header();
+            }
+        });
 }
 
 void game_client::do_write()
@@ -73,19 +69,19 @@ void game_client::do_write()
     auto& msg = _msg_queue.front();
 
     asio::async_write(_sock,
-            asio::buffer(msg.data(), msg.length()),
-            [this, self](std::error_code ec, std::size_t)
-            {
-                if (!ec) {
-                    _msg_queue.pop_front();
+        asio::buffer(msg.data(), msg.length()),
+        [this, self](std::error_code ec, std::size_t)
+        {
+            if (!ec) {
+                _msg_queue.pop_front();
 
-                    if (!_msg_queue.empty()) {
-                        do_write();
-                    }
-                } else {
-                    _lobby.leave(shared_from_this());
+                if (!_msg_queue.empty()) {
+                    do_write();
                 }
-            });
+            } else {
+                _lobby.leave(shared_from_this());
+            }
+        });
 }
 
 void game_client::handle_packet(game_packet& packet)

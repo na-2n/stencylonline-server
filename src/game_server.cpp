@@ -18,15 +18,15 @@ game_server::game_server(asio::io_context& io_ctx, const tcp::endpoint& endpoint
 void game_server::do_accept()
 {
     _acceptor.async_accept(
-            [this](std::error_code ec, tcp::socket sock)
-            {
-                if (!ec) {
-                    std::cout << "incoming connection" << std::endl;
+        [this](std::error_code ec, tcp::socket sock)
+        {
+            if (!ec) {
+                std::cout << "incoming connection" << std::endl;
 
-                    std::make_shared<game_client>(std::move(sock), _lobby)->start();
-                }
+                std::make_shared<game_client>(std::move(sock), _lobby)->start();
+            }
 
-                do_accept();
-            });
+            do_accept();
+        });
 }
 

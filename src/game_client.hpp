@@ -25,7 +25,7 @@ public:
 
     void send(game_packet& pkt);
 
-    inline game_player::id_t id() const override
+    inline player_id_t id() const override
     {
         return _id;
     }
@@ -45,7 +45,7 @@ private:
     std::chrono::steady_clock _clock;
     time_point _last_ping;
 
-    game_player::id_t _id;
+    player_id_t _id;
 
     std::deque<game_packet> _msg_queue;
     tcp::socket _sock;

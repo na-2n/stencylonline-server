@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-game_player::id_t game_lobby::join(game_player::ptr player)
+player_id_t game_lobby::join(game_player::ptr player)
 {
-    game_player::id_t id = 0;
+    player_id_t id = 0;
 
     while (_players.find(id) != _players.end()) {
         id++;
@@ -19,14 +19,16 @@ game_player::id_t game_lobby::join(game_player::ptr player)
     }
 
     if (!_players.empty()) {
-        game_packet init_pkt{game_packet::id_join};
+        game_packet init_pkt{game_packet::id_join, game_packet::header_server};
 
-        init_pkt.set_body_length(1);
+        //init_pkt.set_body_length(1);
 
         if (init_pkt.encode_header()) {
             for (auto& kv : _players) {
                 if (kv.first != id) {
-                    init_pkt.body()[0] = kv.first;
+                    init_pkt.set_player_id(kv.first);
+
+                    //init_pkt.body()[0] = kv.first;
 
                     player->send_packet(init_pkt);
                 }
@@ -45,7 +47,7 @@ void game_lobby::leave(game_player::ptr player)
 
     game_packet dc_pkt{game_packet::id_leave};
 
-    dc_pkt.encode_header();
+    //dc_pkt.encode_header();
 
     broadcast(player->id(), dc_pkt);
 
@@ -54,9 +56,9 @@ void game_lobby::leave(game_player::ptr player)
     //std::printf("remaining players: %lu\n", _players.size());
 }
 
-void game_lobby::broadcast(const game_player::id_t& id, game_packet& packet)
+void game_lobby::broadcast(const player_id_t& id, game_packet& packet)
 {
-    packet.append(&id);
+    packet.set_player_id(id);
 
     if (!packet.encode_header()) {
         return;

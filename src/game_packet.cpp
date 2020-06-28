@@ -1,50 +1,37 @@
 #include "game_packet.hpp"
 
-game_packet::game_packet()
-    : _length{0}
+#include <iostream>
+
+game_packet::game_packet(header_type type)
+    : _length{0},
+      _id{0},
+      _header_length{type},
+      _encoded{false}
 {
 }
 
-game_packet::game_packet(const game_packet::id_t& id)
-    : _id{id},
-      _length{0}
+game_packet::game_packet(const packet_id_t& id, header_type type)
+    : _length{0},
+      _id{id},
+      _header_length{type},
+      _encoded{false}
 {
-}
-
-bool game_packet::init_with(const game_packet::id_t& id, char* data, const game_packet::len_t& len)
-{
-    if (len > body_length_max) {
-        return false;
-    }
-
-    _id = id;
-    _length = len;
-
-    if (!encode_header()) {
-        return false;
-    }
-
-    std::memcpy(body(), data, len);
-
-    return true;
 }
 
 bool game_packet::decode_header()
 {
-    std::memcpy(&_length, _data, sizeof(len_t));
+    std::memcpy(&_length, _data, sizeof(packet_length_t));
 
     if (_length > body_length_max) {
-        _length = 0;
+        _length = body_length_max;
 
         return false;
     }
 
-    _id = static_cast<id_t>(_data[sizeof(len_t)]);
+    std::memcpy(&_id, _data + sizeof(packet_length_t), sizeof(packet_id_t));
 
-    if (_id >= _id_max) {
-        _id = 0;
-
-        return false;
+    if (_header_length == header_server) {
+        std::memcpy(&_player_id, _data + sizeof(packet_length_t) + sizeof(packet_id_t), sizeof(player_id_t));
     }
 
     return _length >= 0;
@@ -52,10 +39,13 @@ bool game_packet::decode_header()
 
 bool game_packet::encode_header()
 {
-    std::memcpy(_data, &_length, sizeof(len_t));
+    std::memcpy(_data, &_length, sizeof(packet_length_t));
+    std::memcpy(_data + sizeof(packet_length_t), &_id, sizeof(packet_id_t));
 
-    _data[sizeof(len_t)] = _id;
+    if (_header_length == header_server) {
+        std::memcpy(_data + sizeof(packet_length_t) + sizeof(packet_id_t), &_player_id, sizeof(player_id_t));
+    }
 
-    return true;
+    return _encoded = true;
 }
 

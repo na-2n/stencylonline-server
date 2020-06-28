@@ -2,18 +2,19 @@
 
 #include <map>
 
+#include "data_types.hpp"
 #include "game_packet.hpp"
 #include "game_player.hpp"
 
 class game_lobby {
 public:
-    game_player::id_t join(game_player::ptr player);
+    player_id_t join(game_player::ptr player);
 
     void leave(game_player::ptr player);
 
-    void broadcast(const game_player::id_t& id, game_packet& packet);
+    void broadcast(const player_id_t& id, game_packet& packet);
 
 private:
-    std::map<game_player::id_t, game_player::ptr> _players;
+    std::map<player_id_t, game_player::ptr> _players;
 };
 
