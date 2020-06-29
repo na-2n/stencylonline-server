@@ -3,48 +3,42 @@
 import time
 import struct
 
+from enum import IntEnum
 from socket import socket, AF_INET, SOCK_STREAM
 
-PACKETS = {
-    0x01: "connect",
-    0x02: "ping",
-    0x03: "pong",
+class PacketId(IntEnum):
+    PING     = 0x00
 
-    0x05: "join",
-    0x06: "leave",
+    JOIN     = 0x01
+    LEAVE    = 0x02
 
-    0x10: "data",
-    0x11: "position",
-    0x12: "action",
-}
+    POSITION = 0x03
+    SPAWN    = 0x04
 
-def get_packet_name(id: int) -> str:
-    if id in PACKETS:
-        return PACKETS[id]
-
-    return "unknown"
 
 def main():
     sock = socket(AF_INET, SOCK_STREAM)
 
     sock.connect(("localhost", 8876))
 
-    #sock.send(bytes.fromhex('08 11  01 00 00 00  01 00 00 00'))
+    print('connected')
+
+    #                       len  id    x pos        y pos
+    #sock.send(bytes.fromhex('08  03    00 00 00 00  00 00 00 00'))
 
     while True:
         size = struct.unpack('B', sock.recv(1))[0]
         packet_id = struct.unpack('B', sock.recv(1))[0]
+        player_id = struct.unpack('B', sock.recv(1))[0]
 
-        data = sock.recv(size)
+        data = sock.recv(size) if size > 0 else b''
 
-        player_id = data[size - 1]
+        packet_name = PacketId(packet_id).name
 
-        packet_name = get_packet_name(packet_id)
+        print(f'\ngot packet ({packet_name}) from player {player_id}')
+        print(f'\tdata = {data}')
 
-        print(f'got packet ({packet_name}) from player {player_id}')
-        print(f'\tdata = {data[:size-1]}')
-
-        if packet_id == 0x11:
+        if packet_id == PacketId.POSITION:
             x = struct.unpack('f', data[:4])[0]
             y = struct.unpack('f', data[4:8])[0]
 
